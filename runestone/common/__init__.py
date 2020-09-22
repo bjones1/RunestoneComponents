@@ -5,4 +5,5 @@ from .runestonedirective import (
     RunestoneNode,
     RunestoneIdNode,
     get_node_line,
+    env_from_node,
 )

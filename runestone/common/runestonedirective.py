@@ -199,8 +199,12 @@ def setup(app):
     app.connect("doctree-resolved", _insert_qnum)
     app.add_role("skipreading", SkipReading)
     # See http://www.sphinx-doc.org/en/stable/extdev/appapi.html#sphinx.application.Sphinx.add_config_value.
+    #
+    # If True, enable server-side grading.
     app.add_config_value("runestone_server_side_grading", False, "env")
     app.add_config_value("generate_component_labels", True, "env")
+    # If True, show all answers, rather than hiding them.
+    app.add_config_value("runestone_show_answers", False, "env")
 
 
 # A base class for all Runestone directives.

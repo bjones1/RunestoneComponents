@@ -22,6 +22,7 @@ from runestone.common.runestonedirective import (
     RunestoneNode,
     RunestoneIdNode,
     get_node_line,
+    env_from_node,
 )
 from runestone.server.componentdb import (
     addQuestionToDB,
@@ -397,10 +398,13 @@ def visit_feedback_list_item(self, node):
     mcNode = answer_list_item.parent.parent
     label = chr(answer_list_item.parent.index(answer_list_item) + ord("a"))
     mcNode.runestone_options["alabel"] = label
-    self.body.append(
-        '</li><li data-component="feedback" id="%(divid)s_opt_%(alabel)s">\n'
-        % mcNode.runestone_options
-    )
+    if env_from_node(node).config.runestone_show_answers:
+    	self.body.append("</li><li>")
+    else:
+    	self.body.append(
+        	'</li><li data-component="feedback" id="%(divid)s_opt_%(alabel)s">\n'
+        	% mcNode.runestone_options
+    	)
 
 
 def depart_feedback_list_item(self, node):

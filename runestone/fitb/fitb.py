@@ -23,6 +23,7 @@ import json
 import ast
 from numbers import Number
 import re
+import html
 
 from docutils import nodes
 from docutils.parsers.rst import directives
@@ -95,14 +96,10 @@ def depart_fitb_node(self, node):
 
     # Generate the HTML.
     json_feedback = json.dumps(node.feedbackArray)
-    # Some nodes (for example, those in a timed node) have their ``document == None``. Find a valid ``document``.
-    node_with_document = node
-    while not node_with_document.document:
-        node_with_document = node_with_document.parent
     # Supply client-side grading info if we're not grading on the server.
     node.runestone_options["json"] = (
         "false"
-        if node_with_document.document.settings.env.config.runestone_server_side_grading
+        if node.sphinxEnv.config.runestone_server_side_grading
         else json_feedback
     )
     res = node.template_end % node.runestone_options
@@ -177,11 +174,12 @@ class FillInTheBlank(RunestoneIdDirective):
         )
         fitbNode.template_start = TEMPLATE_START
         fitbNode.template_end = TEMPLATE_END
+        env = self.state.document.settings.env
+        fitbNode.sphinxEnv = env
 
         self.updateContent()
 
         self.state.nested_parse(self.content, self.content_offset, fitbNode)
-        env = self.state.document.settings.env
         self.options["divclass"] = env.config.fitb_div_class
 
         # Expected _`structure`, with assigned variable names and transformations made:
@@ -238,6 +236,7 @@ class FillInTheBlank(RunestoneIdDirective):
         #       FITBFeedbackNode(), which contains all the nodes in blank n's feedback_field_body
         #
         self.assert_has_content()
+        # Remove or just return the last node, depending on the ``runestone_show_answers`` setting.
         feedback_bullet_list = fitbNode.pop()
         if not isinstance(feedback_bullet_list, nodes.bullet_list):
             raise self.error(
@@ -308,13 +307,14 @@ class FillInTheBlank(RunestoneIdDirective):
 
                 feedback_field_body = feedback_field[1]
                 assert isinstance(feedback_field_body, nodes.field_body)
-                # Append feedback for this answer to the end of the fitbNode.
+                # Append feedback for this answer to the end of the fitbNode. Make a deep copy to avoid errors when ``runestone_show_answers`` is true, meaning these nodes will appear elsewhere in the tree of nodes.
                 ffn = FITBFeedbackNode(
                     feedback_field_body.rawsource,
                     *feedback_field_body.children,
                     **feedback_field_body.attributes
                 )
                 ffn.blankFeedbackDict = blankFeedbackDict
+                ffn.sphinxEnv = env
                 fitbNode += ffn
 
             # Add all the feedback for this blank to the feedbackArray.
@@ -379,6 +379,11 @@ def visit_fitb_feedback_node(self, node):
 
 def depart_fitb_feedback_node(self, node):
     # Place all the HTML generated for this node and its children into the feedbackArray.
-    node.blankFeedbackDict["feedback"] = "".join(self.body)
+    body = self.body
     # Restore HTML generated thus far.
     self.body = self.context.pop()
+    # If showing answers, include that text as well.
+    if node.sphinxEnv.config.runestone_show_answers:
+        self.body += ["<p>" + html.escape(str(node.blankFeedbackDict)) + "</p>"] + body
+    # Store the HTML for this feedback.
+    node.blankFeedbackDict["feedback"] = "".join(body)
