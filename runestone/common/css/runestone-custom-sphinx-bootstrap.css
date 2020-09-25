@@ -217,6 +217,7 @@ div.container {
 }
 
 div.section {
+    max-width: 500pt;
     margin-left: auto;
     margin-right: auto;
 }
