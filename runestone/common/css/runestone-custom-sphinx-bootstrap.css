@@ -260,7 +260,7 @@ div.container {
 #main-content section > .timedAssessment,
 #main-content section > .jupyterlite_sphinx_iframe_container
 {
-    max-width: var(--contentWidthWide);
+    max-width: var(--contentWidthRegular);
     margin-left: auto;
     margin-right: auto;
 }
