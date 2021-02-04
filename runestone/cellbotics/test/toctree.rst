@@ -8,18 +8,16 @@
 
     You should have received a copy of the GNU General Public License along with CellBotics.  If not, see <http://www.gnu.org/licenses/>.
 
-**********
-Cellbotics
-**********
-This directory contains files to explore interfacing with a CellBot via BLE and for interfacing with sensors available on many smart devices. A Python wrapper for these classes is available in the Skuplt standard library as ``cellbotics``.
+************
+Unit testing
+************
+This directory contains basic units tests for the Cellbotics extension.
 
 .. toctree::
     :maxdepth: 2
 
+    test_cellbotics.py
+    _sources/index
     __init__.py
-    js/ble.js
-    js/simple_sensor.js
-    js/permissions_polyfill.js
-    js/auto-bind.js
-    js/sensor_polyfill/toctree
-    test/toctree
+    conf.py
+    pavement.py
