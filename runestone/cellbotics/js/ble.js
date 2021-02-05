@@ -284,6 +284,11 @@ class CellBotBleGui {
         this.ble_pair_button = document.getElementById(pair_button_id);
         this.ble_pair_status = document.getElementById(pair_status_id);
 
+        // If the GUI isn't available, give up.
+        if (!this.ble_pair_button || !this.ble_pair_status) {
+            return;
+        }
+
         this.cell_bot_ble = new CellBotBle();
         // Update the pair button based on BLE availability.
         this.cell_bot_ble.has_ble(this.on_availability_changed).then(this.on_ble_available);
