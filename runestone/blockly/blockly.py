@@ -17,6 +17,7 @@
 __author__ = "bmiller"
 
 import os
+from pathlib import Path
 from docutils import nodes
 from runestone.common import RunestoneIdDirective, RunestoneIdNode
 
@@ -170,16 +171,17 @@ def visit_block_node(self, node):
             res += '<block type="%s"></block>\n' % (ctrl)
     res += CTRL_END
     res += END % (node.runestone_options)
+    name = node.runestone_options["divid"] + ".html"
     path = os.path.join(
         node.runestone_options["blocklyHomePrefix"],
         "_static",
-        node.runestone_options["divid"] + ".html",
+        name,
     )
     final = (
         '<iframe class="blk-iframe" seamless src="%s" width="600" '
         'height="600"></iframe>' % path
     )
-    f = open(path, "w")
+    f = open(node.runestone_options["outdir"] + "/" + name, "w")
     f.write(res)
     f.close()
     self.body.append(final)
@@ -211,9 +213,14 @@ class Blockly(RunestoneIdDirective):
         super(Blockly, self).run()
 
         document = self.state.document
-        rel_filename, filename = document.settings.env.relfn2path(self.arguments[0])
+        env = document.settings.env
+        rel_filename, filename = env.relfn2path(self.arguments[0])
+        rel_filename = Path(rel_filename).as_posix()
+        print(rel_filename)
 
         pathDepth = rel_filename.count("/")
+        app = env.app
+        self.options["outdir"] = app.outdir
         self.options["blocklyHomePrefix"] = "../" * pathDepth
 
         plstart = len(self.content)
