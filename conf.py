@@ -158,9 +158,9 @@ rst_prolog = (
 # requires **all** the following:
 #
 # - The use of Runestone services (``eBookConfig.useRunestoneServices === true``)
-# - Logging enabled (``eBookConfig.logLevel > 0``)
+# - Server-side grading to be enabled.
 #
-# The first two conditions cause the ``RunestoneBase.logBookEvent`` in ``runestonebase.js`` to post a student response to the server. The last conditions ensures that ``hsblog`` in ``ajax.py`` on the server will return a response containing grading information.
+# The first condition causes the ``RunestoneBase.logBookEvent`` in ``runestonebase.js`` to post a student response to the server. The second condition ensures that ``hsblog`` in ``ajax.py`` on the server will return a response containing grading information.
 runestone_server_side_grading = False
 
 # Extensions
@@ -352,14 +352,14 @@ intersphinx_mapping = {
         "https://runestoneserver.readthedocs.io/en/latest/", (
             None,
             # An optional local file location -- useful when updating both Sphinx builds before the updates are pushed to the server.
-            ##"C:/Users/bjones/Documents/git/web2py/applications/runestone/_build/objects.inv",
+            "C:/Users/bjones/Documents/git/web2py/applications/runestone/_build/objects.inv",
         )
     ),
     "Overview": (
         "https://runestone.academy/runestone/books/published/overview/index.html", (
             None,
             # An optional local file location -- useful when updating both Sphinx builds before the updates are pushed to the server.
-            ##"C:/Users/bjones/Documents/git/web2py/applications/runestone/books/overview/build/overview/objects.inv",
+            "C:/Users/bjones/Documents/git/web2py/applications/runestone/books/overview/build/overview/objects.inv",
         )
     )
 }
