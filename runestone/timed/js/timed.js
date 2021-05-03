@@ -997,6 +997,7 @@ export default class Timed extends RunestoneBase {
         });
         localStorage.setItem(this.localStorageKey(), storageObj);
     }
+    // .. _timed exam endpoint parameters:
     logScore() {
         this.logBookEvent({
             event: "timedExam",
