@@ -15,7 +15,7 @@ chardet==3.0.4            # via requests
 click==7.1.2              # via -r requirements.in, pip-tools
 codechat==1.8.2           # via -r requirements.in
 cogapp==3.0.0             # via -r requirements.in
-cryptography==2.9.2       # via secretstorage
+cryptography==3.2       # via secretstorage
 docutils==0.16            # via codechat, readme-renderer, sphinx
 easyprocess==0.3          # via pyvirtualdisplay
 idna==2.9                 # via requests
