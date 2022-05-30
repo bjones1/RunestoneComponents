@@ -179,6 +179,81 @@ This problem demonstrates some of the possibilities and challenges in dynamic pr
         :x: Try [%= sx1 === ax2 ? ax1 : ax2 %].
 
 
+.. fillintheblank:: test_fitb_dynamic_3
+    :dyn_vars:
+        // The correct answer, in percent.
+        v.correct = Math.round(rand()*100)
+        // Update the image.
+        v.beforeCheckAnswers = v => svg_rect.width.baseVal.valueAsString = v.a + "%"
+        v.types = Number
+
+    This demonstrates drawing using an SVG as part of a dynamic problem. The percentage entered changes the image drawn.
+
+    .. raw:: html
+
+        <svg version="1.1"
+            width="300" height="200"
+            xmlns="http://www.w3.org/2000/svg">
+            <rect id="svg_rect" width="100%" height="100%" fill="red" />
+            <circle cx="150" cy="100" r="80" fill="green" />
+            <text x="150" y="125" font-size="60" text-anchor="middle" fill="white">SVG</text>
+        </svg>
+
+    Guess a percentage! :blank:`a`\ %
+
+    -   :a === correct: Correct!
+        :x: Try [%= correct %].
+
+
+.. raw:: html
+
+    <script src="https://educ.jmu.edu/~waltondb/dynamic_fitb//btmExpressions.js"></script>
+    <script src="https://jsxgraph.org/distrib/jsxgraphcore.js"></script>
+
+
+.. fillintheblank:: test_fitb_dynamic_4
+    :dyn_vars:
+        // Initialize environment
+        v._menv = new BTM({'rand': rand});
+        v.jsxid = v.divid + "-jsx";
+        // Initialize problem parameters
+        v.a = v._menv.addParameter('a', { mode:'random', min:-4, max:3, by:0.1, prec:0.1 });
+        v.b = v._menv.addParameter('b', { mode:'random', min:-4, max:5, by:0.1, prec:0.1 });
+        v.dx = v._menv.addParameter('dx', { mode:'random', min:0.4, max:3, by:0.1, prec:0.1 });
+        v.dy = v._menv.addParameter('dy', { mode:'random', min:-3, max:3, by:0.1, prec:0.1 });
+        v.c = v._menv.addParameter('c', { mode:'calculate', formula:'a+dx', prec:0.1 });
+        v.d = v._menv.addParameter('d', { mode:'calculate', formula:'b+dy', prec:0.1 });
+        v.m = v.dy/v.dx;
+        v.bint = v.b-v.m*v.a;
+        // Equation of the line
+        v.pointSlope = v._menv.addExpression('pointSlope', {
+            formula: '{{dy}}/{{dx}}*(x-{{a}})+{{b}}'
+        }).reduce();
+        // Declare answer parsers
+        v.types = v._menv.getParser();
+        // Setup post-processing function
+        v.afterContentRender = v => {
+            // Create the graph
+            const board = JXG.JSXGraph.initBoard(v.jsxid, {boundingbox: [-6, 6, 6, -6], axis:true});
+            const P1=board.create('point', [v.a, v.b], {name: 'P_1', fixed: true});
+            const P2=board.create('point', [v.c, v.d], {name: 'P_2', fixed: true});
+            board.create('line', [P1, P2]);
+        };
+
+    Can we include a randomly generated graph?
+
+    .. raw:: html
+
+        <div id="[%= jsxid %]" class="jxgbox" style="width:300px; height:300px;"></div>
+
+    Find the equation of the line passing through the points :math:`P_1=([%= a %], [%= b %])` and :math:`P_2=([%= c %], [%= d %])`.
+
+    :math:`y =` :blank:`formula`
+
+    -   :_menv.compareExpressions(pointSlope, formula): Correct!
+        :x: Try again!
+
+
 Footnotes
 ---------
 .. [#converters]
