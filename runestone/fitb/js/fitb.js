@@ -69,7 +69,7 @@
 import RunestoneBase from "../../common/js/runestonebase.js";
 import {
   renderDynamicContent,
-  evaluateAnswersCore,
+  checkAnswersCore,
   renderDynamicFeedback,
 } from "./fitb-utils.js";
 import "./fitb-i18n.en.js";
@@ -230,8 +230,20 @@ export default class FITB extends RunestoneBase {
         renderDynamicContent(
           this.seed,
           this.dyn_vars,
-          this.descriptionDiv.origInnerHTML
+          this.descriptionDiv.origInnerHTML,
+          this.divid,
+          this.prepareCheckAnswers.bind(this),
         );
+
+      if (typeof(this.dyn_vars_eval.afterContentRender) === "function") {
+        try {
+          this.dyn_vars_eval.afterContentRender(this.dyn_vars_eval);
+        } catch (err) {
+          console.log(`Error in problem ${this.divid} invoking afterContentRender`);
+          throw err;
+        }
+      }
+
       this.queueMathJax(this.descriptionDiv);
       this.setupBlanks();
     }
@@ -310,6 +322,7 @@ export default class FITB extends RunestoneBase {
       }
     }
   }
+
   checkLocalStorage() {
     // Loads previous answers from local storage if they exist
     var storedData;
@@ -333,6 +346,7 @@ export default class FITB extends RunestoneBase {
       }
     }
   }
+
   setLocalStorage(data) {
     let key = this.localStorageKey();
     localStorage.setItem(key, JSON.stringify(data));
@@ -342,21 +356,40 @@ export default class FITB extends RunestoneBase {
     // Start of the evaluation chain
     this.isCorrectArray = [];
     this.displayFeed = [];
-    this.given_arr = [];
-    for (var i = 0; i < this.blankArray.length; i++)
-      this.given_arr.push(this.blankArray[i].value);
+    const pca = this.prepareCheckAnswers();
+
     if (this.useRunestoneServices) {
       if (eBookConfig.enableCompareMe) {
         this.enableCompareButton();
       }
     }
+
     // Grade locally if we can't ask the server to grade.
     if (this.feedbackArray) {
-      this.evaluateAnswers();
+        [
+          // An array of HTML feedback.
+          this.displayFeed,
+          // true, false, or null (the question wasn't answered).
+          this.correct,
+          // An array of true, false, or null (the question wasn't answered).
+          this.isCorrectArray,
+          this.percent
+        ] = checkAnswersCore(...pca);
       if (!this.isTimed) {
         this.renderFeedback();
       }
     }
+  }
+
+  // Inputs:
+  //
+  // - Strings entered by the student in ``this.blankArray[i].value``.
+  // - Feedback in ``this.feedbackArray``.
+  prepareCheckAnswers() {
+    this.given_arr = [];
+    for (var i = 0; i < this.blankArray.length; i++)
+      this.given_arr.push(this.blankArray[i].value);
+    return [this.blankNames, this.given_arr, this.feedbackArray, this.dyn_vars_eval];
   }
 
   // _`randomize`: This handles a click to the "Randomize" button.
@@ -460,26 +493,6 @@ export default class FITB extends RunestoneBase {
     === Evaluation of answer and ===
     ===     display feedback     ===
     ==============================*/
-  // Inputs:
-  //
-  // - Strings entered by the student in ``this.blankArray[i].value``.
-  // - Feedback in ``this.feedbackArray``.
-  //
-  // Outputs:
-  //
-  // - ``this.displayFeed`` is an array of HTML feedback.
-  // - ``this.isCorrectArray`` is an array of true, false, or null (the question wasn't answered).
-  // - ``this.correct`` is true, false, or null (the question wasn't answered).
-  evaluateAnswers() {
-    [this.displayFeed, this.correct, this.isCorrectArray, this.percent] =
-      evaluateAnswersCore(
-        this.blankNames,
-        this.given_arr,
-        this.feedbackArray,
-        this.dyn_vars_eval
-      );
-  }
-
   renderFeedback() {
     if (this.correct) {
       $(this.feedBackDiv).attr("class", "alert alert-info");

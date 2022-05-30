@@ -33,11 +33,11 @@ const EJS_OPTIONS = {
 // Functions
 // =========
 // Update the problem's description based on dynamically-generated content.
-export function renderDynamicContent(seed, dyn_vars, html_in) {
+export function renderDynamicContent(seed, dyn_vars, html_in, divid, prepareCheckAnswers) {
     // Initialize RNG with ``this.seed``. Taken from `SO <https://stackoverflow.com/a/47593316/16038919>`_.
     const rand = function mulberry32(a) {
         return function() {
-            var t = a += 0x6D2B79F5;
+            let t = a += 0x6D2B79F5;
             t = Math.imul(t ^ t >>> 15, t | 1);
             t ^= t + Math.imul(t ^ t >>> 7, t | 61);
             return ((t ^ t >>> 14) >>> 0) / 4294967296;
@@ -45,16 +45,32 @@ export function renderDynamicContent(seed, dyn_vars, html_in) {
     }(seed);
 
     // See `RAND_FUNC <RAND_FUNC>`_, which refers to ``rand`` above.
-    const dyn_vars_eval = window.Function("v", "rand", `"use strict";\n${dyn_vars};\nreturn v;`)({}, RAND_FUNC);
-    let html_out = "";
+    const dyn_vars_eval = window.Function(
+        "v", "rand", `"use strict";\n${dyn_vars};\nreturn v;`
+    )(
+        {divid: divid, prepareCheckAnswers: prepareCheckAnswers}, RAND_FUNC
+    );
+
+    let html_out;
+    if (typeof(dyn_vars_eval.beforeContentRender) === "function") {
+        try {
+            dyn_vars_eval.beforeContentRender(dyn_vars_eval);
+        } catch (err) {
+            console.log(`Error in problem ${divid} invoking beforeContentRender`);
+            throw err;
+        }
+    }
     try {
         html_out = ejs_render(html_in, dyn_vars_eval, EJS_OPTIONS);
     } catch (err) {
-        html_out += `<pre style="color: red">${err}</pre>`;
+        console.log(`Error rendering problem ${divid} text using EJS`);
+        throw err;
     }
 
+    // the afterContentRender event will be called by the caller of this function (after it updated the HTML based on the contents of html_out).
     return [html_out, dyn_vars_eval];
 }
+
 
 // Given student answers, grade them and provide feedback.
 //
@@ -64,8 +80,8 @@ export function renderDynamicContent(seed, dyn_vars, html_in) {
 // -    ``isCorrectArray`` is an array of true, false, or null (the question wasn't answered).
 // -    ``correct`` is true, false, or null (the question wasn't answered).
 // -    ``percent`` is the percentage of correct answers (from 0 to 1, not 0 to 100).
-export function evaluateAnswersCore(
-    // _`blankNamesDict`: An dict of {blank_name, blank_index} specifying the name for each (named) blank.
+export function checkAnswersCore(
+    // _`blankNamesDict`: An dict of {blank_name, blank_index} specifying the name for each named blank.
     blankNamesDict,
     // _`given_arr`: An array of strings containing student-provided answers for each blank.
     given_arr,
@@ -76,12 +92,23 @@ export function evaluateAnswersCore(
     // True if this is running on the server, to work around a `js2py v0.71 bug <https://github.com/PiotrDabkowski/Js2Py/pull/266>`_ fixed in master. When a new version is released, remove this.
     is_server=false,
 ) {
+    if (typeof(dyn_vars_eval.beforeCheckAnswers) === "function") {
+        const [namedBlankValues, given_arr_converted] = parseAnswers(blankNamesDict, given_arr, dyn_vars_eval);
+        const dve_blanks = Object.assign({}, dyn_vars_eval, namedBlankValues);
+        try {
+            dyn_vars_eval.beforeCheckAnswers(dve_blanks, given_arr_converted);
+        } catch (err) {
+            console.log("Error calling beforeCheckAnswers");
+            throw err;
+        }
+    }
+
     // Keep track if all answers are correct or not.
     let correct = true;
-    let isCorrectArray = [];
-    let displayFeed = [];
-    for (var i = 0; i < given_arr.length; i++) {
-        var given = given_arr[i];
+    const isCorrectArray = [];
+    const displayFeed = [];
+    for (let i = 0; i < given_arr.length; i++) {
+        const given = given_arr[i];
         // If this blank is empty, provide no feedback for it.
         if (given === "") {
             isCorrectArray.push(null);
@@ -90,8 +117,9 @@ export function evaluateAnswersCore(
             correct = false;
         } else {
             // Look through all feedback for this blank. The last element in the array always matches. If no feedback for this blank exists, use an empty list.
-            var fbl = feedbackArray[i] || [];
-            for (var j = 0; j < fbl.length; j++) {
+            const fbl = feedbackArray[i] || [];
+            let j;
+            for (j = 0; j < fbl.length; j++) {
                 // The last item of feedback always matches.
                 if (j === fbl.length - 1) {
                     displayFeed.push(fbl[j]["feedback"]);
@@ -99,42 +127,37 @@ export function evaluateAnswersCore(
                 }
                 // If this is a dynamic solution...
                 if (dyn_vars_eval) {
-                    // Prepare the needed inputs for calling the grading function.
-                    //
-                    // Provide a dict of {blank_name, converter_answer_value}.
-                    const blankValues = getBlankValues(given_arr, blankNamesDict, dyn_vars_eval);
-                    // Compute an array of [blank_0_name, ...].
-                    let given_arr_names = [];
-                    for (const [k, v] of Object.entries(blankNamesDict)) {
-                        given_arr_names[v] = k;
+                    const [namedBlankValues, given_arr_converted] = parseAnswers(blankNamesDict, given_arr, dyn_vars_eval);
+                    // If there was a parse error, then it student's answer is incorrect.
+                    if (given_arr_converted[i] instanceof TypeError) {
+                        displayFeed.push(given_arr_converted[i].message);
+                        // Count this as wrong by making j != 0 -- see the code that runs immediately after the executing the break.
+                        j = 1;
+                        break;
                     }
-                    // Compute an array of [converted_blank_0_val, ...].
-                    const given_arr_converted = given_arr.map((value, index) => type_convert(given_arr_names[index], value, index, dyn_vars_eval));
                     // Create a function to wrap the expression to evaluate. See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/Function.
                     // Pass the answer, array of all answers, then all entries in ``this.dyn_vars_eval`` dict as function parameters.
-                    let is_correct = window.Function(
+                    const is_equal = window.Function(
                         "ans",
                         "ans_array",
-                        // Not necessary, but allows access of a variable such as ``a`` using ``v.a`` (or as ``a``).
-                        "v",
                         ...Object.keys(dyn_vars_eval),
-                        ...Object.keys(blankValues),
+                        ...Object.keys(namedBlankValues),
                         `"use strict;"\nreturn ${fbl[j]["solution_code"]};`
                     )(
-                        given_arr_converted[j],
+                        given_arr_converted[i],
                         given_arr_converted,
-                        Object.assign({}, dyn_vars_eval, blankValues),
                         ...Object.values(dyn_vars_eval),
-                        ...Object.values(blankValues)
+                        ...Object.values(namedBlankValues)
                     );
-                    if (is_correct) {
-                        displayFeed.push(fbl[j]["feedback"]);
+                    // If student's answer is equal to this item, then append this item's feedback.
+                    if (is_equal) {
+                        displayFeed.push(typeof(is_equal) === "string" ? is_equal : fbl[j]["feedback"]);
                         break;
                     }
                 } else
                 // If this is a regexp...
                 if ("regex" in fbl[j]) {
-                    var patt = RegExp(
+                    const patt = RegExp(
                         fbl[j]["regex"],
                         fbl[j]["regexFlags"]
                     );
@@ -145,9 +168,9 @@ export function evaluateAnswersCore(
                 } else {
                     // This is a number.
                     console.assert("number" in fbl[j]);
-                    var [min, max] = fbl[j]["number"];
+                    const [min, max] = fbl[j]["number"];
                     // Convert the given string to a number. While there are `lots of ways <https://coderwall.com/p/5tlhmw/converting-strings-to-number-in-javascript-pitfalls>`_ to do this; this version supports other bases (hex/binary/octal) as well as floats.
-                    var actual = +given;
+                    const actual = +given;
                     if (actual >= min && actual <= max) {
                         displayFeed.push(fbl[j]["feedback"]);
                         break;
@@ -160,7 +183,7 @@ export function evaluateAnswersCore(
                 --j;
             }
             // The answer is correct if it matched the first element in the array. A special case: if only one answer is provided, count it wrong; this is a misformed problem.
-            let is_correct = j === 0 && fbl.length > 1;
+            const is_correct = j === 0 && fbl.length > 1;
             isCorrectArray.push(is_correct);
             if (!is_correct) {
                 correct = false;
@@ -168,8 +191,42 @@ export function evaluateAnswersCore(
         }
     }
 
+    if (typeof(dyn_vars_eval.afterCheckAnswers) === "function") {
+        const [namedBlankValues, given_arr_converted] = parseAnswers(blankNamesDict, given_arr, dyn_vars_eval);
+        const dve_blanks = Object.assign({}, dyn_vars_eval, namedBlankValues);
+        try {
+            dyn_vars_eval.afterCheckAnswers(dve_blanks, given_arr_converted);
+        } catch (err) {
+            console.log("Error calling afterCheckAnswers");
+            throw err;
+        }
+    }
+
     const percent = isCorrectArray.filter(Boolean).length / isCorrectArray.length;
     return [displayFeed, correct, isCorrectArray, percent];
+}
+
+
+// Use the provided parsers to convert a student's answers (as strings) to the type produced by the parser for each blank.
+function parseAnswers(
+    // See blankNamesDict_.
+    blankNamesDict,
+    // See given_arr_.
+    given_arr,
+    // See `dyn_vars_eval`.
+    dyn_vars_eval,
+){
+    // Provide a dict of {blank_name, converter_answer_value}.
+    const namedBlankValues = getNamedBlankValues(given_arr, blankNamesDict, dyn_vars_eval);
+    // Invert blankNamedDict: compute an array of [blank_0_name, ...]. Note that the array may be sparse: it only contains values for named blanks.
+    const given_arr_names = [];
+    for (const [k, v] of Object.entries(blankNamesDict)) {
+        given_arr_names[v] = k;
+    }
+    // Compute an array of [converted_blank_0_val, ...]. Note that this re-converts all the values, rather than (possibly deep) copying the values from already-converted named blanks.
+    const given_arr_converted = given_arr.map((value, index) => type_convert(given_arr_names[index], value, index, dyn_vars_eval));
+
+    return [namedBlankValues, given_arr_converted];
 }
 
 
@@ -187,18 +244,19 @@ export function renderDynamicFeedback(
     dyn_vars_eval
 ) {
     // Use the answer, an array of all answers, the value of all named blanks, and all solution variables for the template.
-    const blankValues = getBlankValues(given_arr, blankNamesDict, dyn_vars_eval);
+    const namedBlankValues = getNamedBlankValues(given_arr, blankNamesDict, dyn_vars_eval);
     const sol_vars_plus = Object.assign({
         ans: given_arr[index],
         ans_array: given_arr
     },
         dyn_vars_eval,
-        blankValues,
+        namedBlankValues,
     );
     try {
         displayFeed_i = ejs_render(displayFeed_i, sol_vars_plus, EJS_OPTIONS);
     } catch (err) {
-        displayFeed_i += `<pre style="color: red">${err}</pre>`;
+        console.log(`Error evaluating feedback index ${index}.`)
+        throw err;
     }
 
     return displayFeed_i;
@@ -208,12 +266,12 @@ export function renderDynamicFeedback(
 // Utilities
 // ---------
 // For each named blank, get the value for the blank: the value of each ``blankName`` gives the index of the blank for that name.
-function getBlankValues(given_arr, blankNamesDict, dyn_vars_eval) {
-    let blankValues = {};
-    for (let [blank_name, blank_index] of Object.entries(blankNamesDict)) {
-        blankValues[blank_name] = type_convert(blank_name, given_arr[blank_index], blank_index, dyn_vars_eval);
+function getNamedBlankValues(given_arr, blankNamesDict, dyn_vars_eval) {
+    const namedBlankValues = {};
+    for (const [blank_name, blank_index] of Object.entries(blankNamesDict)) {
+        namedBlankValues[blank_name] = type_convert(blank_name, given_arr[blank_index], blank_index, dyn_vars_eval);
     }
-    return blankValues;
+    return namedBlankValues;
 }
 
 
@@ -221,17 +279,21 @@ function getBlankValues(given_arr, blankNamesDict, dyn_vars_eval) {
 function type_convert(name, value, index, dyn_vars_eval) {
     // The converter can be defined by index, name, or by a single value (which applies to all blanks). If not provided, just pass the data through.
     const types = dyn_vars_eval.types || pass_through;
-    let converter = types[name] || types[index] || types;
+    const converter = types[name] || types[index] || types;
     // ES5 hack: it doesn't support binary values, and js2py doesn't allow me to override the ``Number`` class. So, define the workaround class ``Number_`` and use it if available.
-    console.log([converter, Number, converter === Number, typeof Number_, name, value, index, dyn_vars_eval]);
     if (converter === Number && typeof Number_ !== "undefined") {
         converter = Number_;
     }
+
+    // Return the converted type. If the converter raises a TypeError, return that; it will be displayed to the user, since we assume type errors are a way for the parser to explain to the user why the parse failed. For all other errors, re-throw it since something went wrong.
     try {
         return converter(value);
     } catch (err) {
-        console.log(`Error converting blank named "${name}" with value "${value}" at blank index ${index} using converter ${converter.name}: ${err}.`);
-        return value;
+        if (err instanceof TypeError) {
+            return err;
+        } else {
+            throw err;
+        }
     }
 }
 
