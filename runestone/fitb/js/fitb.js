@@ -133,7 +133,6 @@ export default class FITB extends RunestoneBase {
   renderFITBInput() {
     // The text [input] elements are created by the template.
     this.containerDiv = document.createElement("div");
-    $(this.containerDiv).addClass("alert alert-warning");
     this.containerDiv.id = this.divid;
     // Create another container which stores the problem description.
     this.descriptionDiv = document.createElement("div");
@@ -235,7 +234,7 @@ export default class FITB extends RunestoneBase {
           this.prepareCheckAnswers.bind(this),
         );
 
-      if (typeof(this.dyn_vars_eval.afterContentRender) === "function") {
+      if (typeof (this.dyn_vars_eval.afterContentRender) === "function") {
         try {
           this.dyn_vars_eval.afterContentRender(this.dyn_vars_eval);
         } catch (err) {
@@ -366,15 +365,15 @@ export default class FITB extends RunestoneBase {
 
     // Grade locally if we can't ask the server to grade.
     if (this.feedbackArray) {
-        [
-          // An array of HTML feedback.
-          this.displayFeed,
-          // true, false, or null (the question wasn't answered).
-          this.correct,
-          // An array of true, false, or null (the question wasn't answered).
-          this.isCorrectArray,
-          this.percent
-        ] = checkAnswersCore(...pca);
+      [
+        // An array of HTML feedback.
+        this.displayFeed,
+        // true, false, or null (the question wasn't answered).
+        this.correct,
+        // An array of true, false, or null (the question wasn't answered).
+        this.isCorrectArray,
+        this.percent
+      ] = checkAnswersCore(...pca);
       if (!this.isTimed) {
         this.renderFeedback();
       }
