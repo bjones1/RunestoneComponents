@@ -8,26 +8,40 @@
 
 // Includes
 // ========
-// This is an edited copy of `EJS <https://ejs.co/>`_:
+// None.
 //
-// -    It contains the improvement mentioned in `this issue <https://github.com/mde/ejs/issues/624>`_.
-// -    It also contains a workaround for a `js2py v0.71 bug <https://github.com/PiotrDabkowski/Js2Py/pull/265>`_. The fix is merged, but not yet released.
 //
-// If both issues are merged and released, then use EJS from NPM.
-import { render as ejs_render } from "./ejs/lib/ejs.js";
-
-
 // Globals
 // =======
-// Standard options to use for EJS templates.
-const EJS_OPTIONS = {
-    strict: true,
-    // Not needed, but might reduce confusion -- you can access the variable ``a`` as ``a`` or ``v.a``.
-    localsName: "v",
-    // Avoid the default delimiters of ``<`` and ``>``, which get translated to HTML entities by Sphinx.
-    openDelimiter: "[",
-    closeDelimiter: "]"
-};
+function render_html(html_in, dyn_vars_eval) {
+    // Given HTML, turn it into a DOM. Walk the ``<script-eval>`` tags, performing the requested evaluation on them.
+    //
+    // See `DOMParser <https://developer.mozilla.org/en-US/docs/Web/API/DOMParser>`_.
+    const parser = new DOMParser();
+    // See `DOMParser.parseFromString() <https://developer.mozilla.org/en-US/docs/Web/API/DOMParser/parseFromString>`_.
+    const doc = parser.parseFromString(html_in, "text/html");
+    const script_eval_tags = doc.getElementsByTagName("script-eval");
+    for (const script_eval_tag of script_eval_tags) {
+        // See if this ``<script-eval>`` tag has as ``@expr`` attribute.
+        const expr = script_eval_tag.getAttribute("expr")
+        // If so, evaluate it.
+        if (expr) {
+            const eval_result = window.Function(
+                "v",
+                ...Object.keys(dyn_vars_eval),
+                `"use strict;"\nreturn ${expr};`
+            )(
+                dyn_vars_eval,
+                ...Object.values(dyn_vars_eval),
+            );
+            // Put the result in the inner HTML of this tag.
+            script_eval_tag.innerHTML = eval_result;
+        }
+    }
+
+    // Return the body contents. Note that the ``DOMParser`` constructs an entire document, not just the document fragment we passed it. Therefore, extract the desired fragment and return that. Note that we need to use `childNodes <https://developer.mozilla.org/en-US/docs/Web/API/Node/childNodes>`_, which includes non-element children like text and comments; using ``children`` omits these non-element children.
+    return doc.body.childNodes;
+}
 
 
 // Functions
@@ -36,7 +50,7 @@ const EJS_OPTIONS = {
 export function renderDynamicContent(seed, dyn_vars, html_in, divid, prepareCheckAnswers) {
     // Initialize RNG with ``this.seed``. Taken from `SO <https://stackoverflow.com/a/47593316/16038919>`_.
     const rand = function mulberry32(a) {
-        return function() {
+        return function () {
             let t = a += 0x6D2B79F5;
             t = Math.imul(t ^ t >>> 15, t | 1);
             t ^= t + Math.imul(t ^ t >>> 7, t | 61);
@@ -48,11 +62,11 @@ export function renderDynamicContent(seed, dyn_vars, html_in, divid, prepareChec
     const dyn_vars_eval = window.Function(
         "v", "rand", `"use strict";\n${dyn_vars};\nreturn v;`
     )(
-        {divid: divid, prepareCheckAnswers: prepareCheckAnswers}, RAND_FUNC
+        { divid: divid, prepareCheckAnswers: prepareCheckAnswers }, RAND_FUNC
     );
 
     let html_out;
-    if (typeof(dyn_vars_eval.beforeContentRender) === "function") {
+    if (typeof (dyn_vars_eval.beforeContentRender) === "function") {
         try {
             dyn_vars_eval.beforeContentRender(dyn_vars_eval);
         } catch (err) {
@@ -61,7 +75,7 @@ export function renderDynamicContent(seed, dyn_vars, html_in, divid, prepareChec
         }
     }
     try {
-        html_out = ejs_render(html_in, dyn_vars_eval, EJS_OPTIONS);
+        html_out = render_html(html_in, dyn_vars_eval);
     } catch (err) {
         console.log(`Error rendering problem ${divid} text using EJS`);
         throw err;
@@ -89,10 +103,8 @@ export function checkAnswersCore(
     feedbackArray,
     // _`dyn_vars_eval`: A dict produced by evaluating the JavaScript for a dynamic exercise.
     dyn_vars_eval,
-    // True if this is running on the server, to work around a `js2py v0.71 bug <https://github.com/PiotrDabkowski/Js2Py/pull/266>`_ fixed in master. When a new version is released, remove this.
-    is_server=false,
 ) {
-    if (typeof(dyn_vars_eval.beforeCheckAnswers) === "function") {
+    if (dyn_vars_eval && typeof (dyn_vars_eval.beforeCheckAnswers) === "function") {
         const [namedBlankValues, given_arr_converted] = parseAnswers(blankNamesDict, given_arr, dyn_vars_eval);
         const dve_blanks = Object.assign({}, dyn_vars_eval, namedBlankValues);
         try {
@@ -151,37 +163,34 @@ export function checkAnswersCore(
                     );
                     // If student's answer is equal to this item, then append this item's feedback.
                     if (is_equal) {
-                        displayFeed.push(typeof(is_equal) === "string" ? is_equal : fbl[j]["feedback"]);
-                        break;
-                    }
-                } else
-                // If this is a regexp...
-                if ("regex" in fbl[j]) {
-                    const patt = RegExp(
-                        fbl[j]["regex"],
-                        fbl[j]["regexFlags"]
-                    );
-                    if (patt.test(given)) {
-                        displayFeed.push(fbl[j]["feedback"]);
+                        displayFeed.push(typeof (is_equal) === "string" ? is_equal : fbl[j]["feedback"]);
                         break;
                     }
                 } else {
-                    // This is a number.
-                    console.assert("number" in fbl[j]);
-                    const [min, max] = fbl[j]["number"];
-                    // Convert the given string to a number. While there are `lots of ways <https://coderwall.com/p/5tlhmw/converting-strings-to-number-in-javascript-pitfalls>`_ to do this; this version supports other bases (hex/binary/octal) as well as floats.
-                    const actual = +given;
-                    if (actual >= min && actual <= max) {
-                        displayFeed.push(fbl[j]["feedback"]);
-                        break;
+                    // If this is a regexp...
+                    if ("regex" in fbl[j]) {
+                        const patt = RegExp(
+                            fbl[j]["regex"],
+                            fbl[j]["regexFlags"]
+                        );
+                        if (patt.test(given)) {
+                            displayFeed.push(fbl[j]["feedback"]);
+                            break;
+                        }
+                    } else {
+                        // This is a number.
+                        console.assert("number" in fbl[j]);
+                        const [min, max] = fbl[j]["number"];
+                        // Convert the given string to a number. While there are `lots of ways <https://coderwall.com/p/5tlhmw/converting-strings-to-number-in-javascript-pitfalls>`_ to do this; this version supports other bases (hex/binary/octal) as well as floats.
+                        const actual = +given;
+                        if (actual >= min && actual <= max) {
+                            displayFeed.push(fbl[j]["feedback"]);
+                            break;
+                        }
                     }
                 }
             }
 
-            // js2py seems to increment j in the for loop **after** encountering a break statement. Aargh. Work around this.
-            if (is_server) {
-                --j;
-            }
             // The answer is correct if it matched the first element in the array. A special case: if only one answer is provided, count it wrong; this is a misformed problem.
             const is_correct = j === 0 && fbl.length > 1;
             isCorrectArray.push(is_correct);
@@ -191,7 +200,7 @@ export function checkAnswersCore(
         }
     }
 
-    if (typeof(dyn_vars_eval.afterCheckAnswers) === "function") {
+    if (dyn_vars_eval && typeof (dyn_vars_eval.afterCheckAnswers) === "function") {
         const [namedBlankValues, given_arr_converted] = parseAnswers(blankNamesDict, given_arr, dyn_vars_eval);
         const dve_blanks = Object.assign({}, dyn_vars_eval, namedBlankValues);
         try {
@@ -215,7 +224,7 @@ function parseAnswers(
     given_arr,
     // See `dyn_vars_eval`.
     dyn_vars_eval,
-){
+) {
     // Provide a dict of {blank_name, converter_answer_value}.
     const namedBlankValues = getNamedBlankValues(given_arr, blankNamesDict, dyn_vars_eval);
     // Invert blankNamedDict: compute an array of [blank_0_name, ...]. Note that the array may be sparse: it only contains values for named blanks.
@@ -253,7 +262,7 @@ export function renderDynamicFeedback(
         namedBlankValues,
     );
     try {
-        displayFeed_i = ejs_render(displayFeed_i, sol_vars_plus, EJS_OPTIONS);
+        displayFeed_i = render_html(displayFeed_i, sol_vars_plus);
     } catch (err) {
         console.log(`Error evaluating feedback index ${index}.`)
         throw err;

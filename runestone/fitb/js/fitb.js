@@ -225,7 +225,8 @@ export default class FITB extends RunestoneBase {
   renderDynamicContent() {
     // ``this.dyn_vars`` can be true; if so, don't render it, since the server does all the rendering.
     if (typeof this.dyn_vars === "string") {
-      [this.descriptionDiv.innerHTML, this.dyn_vars_eval] =
+      let html_nodes;
+      [html_nodes, this.dyn_vars_eval] =
         renderDynamicContent(
           this.seed,
           this.dyn_vars,
@@ -233,6 +234,7 @@ export default class FITB extends RunestoneBase {
           this.divid,
           this.prepareCheckAnswers.bind(this),
         );
+      this.descriptionDiv.replaceChildren(...html_nodes);
 
       if (typeof (this.dyn_vars_eval.afterContentRender) === "function") {
         try {
@@ -523,6 +525,8 @@ export default class FITB extends RunestoneBase {
           df,
           this.dyn_vars_eval
         );
+        // Convert the returned NodeList into a string of HTML.
+        df = df ? df[0].parentElement.innerHTML : "No feedback provided";
       }
       feedback_html += `<li>${df}</li>`;
     }
