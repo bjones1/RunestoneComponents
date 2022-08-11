@@ -48,7 +48,7 @@ function render_html(html_in, dyn_vars_eval) {
 // =========
 // Update the problem's description based on dynamically-generated content.
 export function renderDynamicContent(seed, dyn_vars, html_in, divid, prepareCheckAnswers) {
-    // Initialize RNG with ``this.seed``. Taken from `SO <https://stackoverflow.com/a/47593316/16038919>`_.
+    // Initialize RNG with ``seed``. Taken from `SO <https://stackoverflow.com/a/47593316/16038919>`_.
     const rand = function mulberry32(a) {
         return function () {
             let t = a += 0x6D2B79F5;
