@@ -104,7 +104,7 @@ This problem demonstrates the basic syntax for a dynamic problem:
     -   To include additional JavaScript libraries for use in your problems, follow `these directions <https://docs.readthedocs.io/en/stable/guides/adding-custom-css.html>`_. (Note that the Runestone authoring system is built on Sphinx).
 
 -   Use ``v.``\ *variable_name* when creating variables inside the ``:dyn_vars:`` option for use in the problem. Everywhere else, use just *variable_name*.
--   Use the syntax ``<script-eval expr="JavaScript_variable_name_or_expression"></script-eval>`` to display the value of a variable or expression in the problem description or in the feedback.
+-   Use the syntax ``[%=`` *JavaScript_variable_name_or_expression* ``%]`` to display the value of a variable or expression in the problem description or in the feedback. Inside these tags, avoid the use of the `reserved HTML characters <https://developer.mozilla.org/en-US/docs/Glossary/Entity>`_ ``&``, ``<``, ``>``, and ``"``. These will be automatically translated to HTML character entities ``&amp;``, ``&lt;``, ``&gt;``, and ``&quot;``, which will confuse the JavaScript interpreter. For example, ``[%= a < b %]`` becomes ``[%= a &lt; b %]``, which produces a JavaScript error. Instead, put these expressions in the ``:dyn_vars:`` option, where no translation is done. For example, place ``v.c = a < b;`` in ``:dyn_vars:`` then use ``%[= c %]`` in the problem description instead.
 -   Create named blanks in the problem description using the syntax ``:blank:`blank_name_here```. You may also used unnamed blanks as usual via ``|blank|``.
 -   In the problem's feedback section, refer to a blank in any of three ways: the blank's name, ``ans`` (the student-provided answer for this blank), or the blank's index in ``ans_array`` (an array of all student-provided answers for this problem).
 -   Optionally (though strongly recommended) provide a type converter for blanks in either of the three following ways:
@@ -130,23 +130,12 @@ The problems below convert their inputs using ``Number``.
         v.b = Math.floor(rand()*10);
         v.types = {c: Number};
 
-    .. raw:: html
+    What is [%= a %] + [%= b %]? :blank:`c`
 
-        <p>What is <script-eval expr="a"></script-eval> + <script-eval expr="b"></script-eval>?</p>
-
-    :blank:`c`
-
-    -   :c === a + b:
-            .. raw:: html
-
-                Correct; <script-eval expr="a"></script-eval> + <script-eval expr="b"></script-eval> is <script-eval expr="c"></script-eval>. Note that <script-eval expr="ans"></script-eval> or <script-eval expr="ans_array[0]"></script-eval> also works.
-
+    -   :c === a + b: Correct; [%= a %] + [%= b %] is [%= c %]. Note that [%= ans %] or [%= ans_array[0] %] also works.
         :c === a - b: That's subtraction.
         :c === a * b: That's multiplication.
-        :x:
-            .. raw:: html
-
-                I don't know what you're doing; <script-eval expr="a"></script-eval> + <script-eval expr="b"></script-eval> is <script-eval expr="a + b"></script-eval>, not <script-eval expr="c"></script-eval>.
+        :x: I don't know what you're doing; [%= a %] + [%= b %] is [%= a + b %], not [%= c %].
 
 
 This problem demonstrates some of the possibilities and challenges in dynamic problems:
@@ -171,11 +160,7 @@ This problem demonstrates some of the possibilities and challenges in dynamic pr
         //
         v.types = Number;
 
-    .. raw:: html
-
-        <p>What are the solutions to <script-eval expr="a"></script-eval>x^2 <script-eval expr="plus(b)"></script-eval>x <script-eval expr="plus(b)"></script-eval> = 0? For repeated roots, enter the same value in both blanks.</p>
-
-    TODO: in reST, I can't put these in a math expression. Hopefully, it works in PreTeXt.
+    What are the solutions to :math:`[%= a %]x^2 [%= plus(b) %]x [%= plus(c) %] = 0`? For repeated roots, enter the same value in both blanks.
 
     :blank:`sx1`, :blank:`sx2`
 
@@ -189,16 +174,9 @@ This problem demonstrates some of the possibilities and challenges in dynamic pr
     Writing dynamic problems is, fundamentally, hard. However, it produces an infinite stream of problems.
 
     -   :ans === ax1 || ans === ax2: Correct!
-        :x:
-            .. raw:: html
-
-                Try <script-eval expr="ax1"></script-eval>.
-
+        :x: Try [%= ax1 %].
     -   :(ans === ax1 || ans === ax2) && (sx1 !== sx2 || ax1 === ax2): Correct!
-        :x:
-            .. raw:: html
-
-                Try <script-eval expr="sx1 === ax2 ? ax1 : ax2"></script-eval>.
+        :x: Try [%= sx1 === ax2 ? ax1 : ax2 %].
 
 
 .. fillintheblank:: test_fitb_dynamic_3
@@ -224,15 +202,12 @@ This problem demonstrates some of the possibilities and challenges in dynamic pr
     Guess a percentage! :blank:`a`\ %
 
     -   :a === correct: Correct!
-        :x:
-            .. raw:: html
-
-                Try <script-eval expr="correct"></script-eval>.
+        :x: Try [%= correct %].
 
 
 .. raw:: html
 
-    <script src="https://educ.jmu.edu/~waltondb/dynamic_fitb/btmExpressions.js"></script>
+    <script src="https://educ.jmu.edu/~waltondb/dynamic_fitb//btmExpressions.js"></script>
     <script src="https://jsxgraph.org/distrib/jsxgraphcore.js"></script>
 
 
@@ -258,12 +233,10 @@ This problem demonstrates some of the possibilities and challenges in dynamic pr
         v.types = v._menv.getParser();
         // Setup post-processing function
         v.afterContentRender = v => {
-            // Assign a unique ID to the div used for JSXGraph.
-            document.getElementById(v.divid).querySelector(".jxgbox").id = v.jsxid;
             // Create the graph
             const board = JXG.JSXGraph.initBoard(v.jsxid, {boundingbox: [-6, 6, 6, -6], axis:true});
-            const P1 = board.create('point', [v.a, v.b], {name: 'P_1', fixed: true});
-            const P2 = board.create('point', [v.c, v.d], {name: 'P_2', fixed: true});
+            const P1=board.create('point', [v.a, v.b], {name: 'P_1', fixed: true});
+            const P2=board.create('point', [v.c, v.d], {name: 'P_2', fixed: true});
             board.create('line', [P1, P2]);
         };
 
@@ -271,19 +244,14 @@ This problem demonstrates some of the possibilities and challenges in dynamic pr
 
     .. raw:: html
 
-        <div class="jxgbox" style="width:300px; height:300px;"></div>
+        <div id="test_fitb_dynamic_4-jsx" class="jxgbox" style="width:300px; height:300px;"></div>
 
-        <p>Find the equation of the line passing through the points P_1 = (<script-eval expr="a"></script-eval>, <script-eval expr="b"></script-eval>) and P_2 = (<script-eval expr="c"></script-eval>, <script-eval expr="d"></script-eval>).</p>
-
-    TODO: render the points using MathJax.
+    Find the equation of the line passing through the points :math:`P_1=([%= a %], [%= b %])` and :math:`P_2=([%= c %], [%= d %])`.
 
     :math:`y =` :blank:`formula`
 
     -   :_menv.compareExpressions(pointSlope, formula): Correct!
-        :x:
-            .. raw:: html
-
-                Try again! The answer is <script-eval expr="pointSlope"></script-eval>.
+        :x: Try again!
 
 
 Footnotes
