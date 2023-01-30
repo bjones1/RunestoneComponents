@@ -100,6 +100,9 @@ export default class FITB extends RunestoneBase {
     this.dyn_vars = dict_.dyn_vars;
     this.blankNames = dict_.blankNames;
     this.feedbackArray = dict_.feedbackArray;
+    if (dict_.static_seed !== undefined) {
+        this.seed = dict_.static_seed;
+    }
 
     this.createFITBElement();
     this.setupBlanks();
