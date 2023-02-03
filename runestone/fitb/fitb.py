@@ -23,7 +23,6 @@ import json
 import ast
 from numbers import Number
 import re
-import pdb
 
 from docutils import nodes
 from docutils.parsers.rst import directives
