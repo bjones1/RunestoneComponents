@@ -100,18 +100,46 @@ export default class FITB extends RunestoneBase {
     this.dyn_vars = dict_.dyn_vars;
     this.blankNames = dict_.blankNames;
     this.feedbackArray = dict_.feedbackArray;
-    if (dict_.static_seed !== undefined) {
-        this.seed = dict_.static_seed;
-    }
 
     this.createFITBElement();
     this.setupBlanks();
     this.caption = "Fill in the Blank";
     this.addCaption("runestone");
     this.checkServer("fillb", false).then(() => {
-      // If there's no seed for a client-side dynamic problem after this check, create one and render it.
-      if (typeof this.dyn_vars === "string" && this.seed === undefined) {
+      // One option for a dynamic problem is to produce a static problem by providing a fixed seed value. This is typically used when the goal is to render the problem as an image for inclusion in static content (a PDF, etc.). To support this, consider the following cases:
+      //
+      /// Case  Has static seed?  Is a client-side, dynamic problem?  Has local seed?  Result
+      /// 0     No                No                                  X                No action needed.
+      /// 1     No                Yes                                 No               this.randomize().
+      /// 2     No                Yes                                 Yes              No action needed -- problem already restored from local storage.
+      /// 3     Yes               No                                  X                Warning: seed ignored.
+      /// 4     Yes               Yes                                 No               Assign seed; this.renderDynamicContent().
+      /// 5     Yes               Yes                                 Yes              If seeds differ, issue warning. No additional action needed -- problem already restored from local storage.
+
+      const has_static_seed = dict_.static_seed !== undefined;
+      const is_client_dynamic = typeof this.dyn_vars === "string";
+      const has_local_seed = this.seed !== undefined;
+
+      // Case 1
+      if (!has_static_seed && is_client_dynamic && !has_local_seed) {
         this.randomize();
+      } else
+      // Case 3
+      if (has_static_seed && !is_client_dynamic) {
+        console.log("Warning: the provided static seed was ignored, because it only affects client-side, dynamic problems.");
+      } else
+      // Case 4
+      if (has_static_seed && is_client_dynamic && !has_local_seed) {
+        this.seed = dict_.static_seed;
+        this.renderDynamicContent();
+      } else
+      // Case 5
+      if (has_static_seed && is_client_dynamic && has_local_seed && this.seed !== dict_.static_seed) {
+        console.log("Warning: the provided static seed was overridden by the seed found in local storage.");
+      }
+      // Cases 0 and 2
+      else {
+        // No action needed.
       }
       this.indicate_component_ready();
     });

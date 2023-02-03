@@ -5,6 +5,8 @@
 
 "use strict";
 
+import { aleaPRNG } from "./aleaPRNG-1.1.js";
+
 // Includes
 // ========
 // None.
@@ -78,14 +80,7 @@ export function renderDynamicContent(
     prepareCheckAnswers
 ) {
     // Initialize RNG with ``seed``. Taken from `SO <https://stackoverflow.com/a/47593316/16038919>`_.
-    const rand = (function mulberry32(a) {
-        return function () {
-            let t = (a += 0x6d2b79f5);
-            t = Math.imul(t ^ (t >>> 15), t | 1);
-            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-        };
-    })(seed);
+    const rand = aleaPRNG(seed);
 
     // See `RAND_FUNC <RAND_FUNC>`_, which refers to ``rand`` above.
     const dyn_vars_eval = window.Function(
