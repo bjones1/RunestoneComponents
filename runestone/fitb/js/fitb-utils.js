@@ -79,7 +79,7 @@ export function renderDynamicContent(
     divid,
     prepareCheckAnswers
 ) {
-    // Initialize RNG with ``seed``. Taken from `SO <https://stackoverflow.com/a/47593316/16038919>`_.
+    // Initialize RNG with ``seed``.
     const rand = aleaPRNG(seed);
 
     // See `RAND_FUNC <RAND_FUNC>`_, which refers to ``rand`` above.
