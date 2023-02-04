@@ -5,7 +5,7 @@
 
 "use strict";
 
-import { aleaPRNG } from "./aleaPRNG-1.1.js";
+import { aleaPRNG } from "./libs/aleaPRNG-1.1.js";
 
 // Includes
 // ========
@@ -75,6 +75,7 @@ function render_html(html_in, dyn_vars_eval) {
 export function renderDynamicContent(
     seed,
     dyn_vars,
+    dyn_imports,
     html_in,
     divid,
     prepareCheckAnswers
@@ -86,15 +87,16 @@ export function renderDynamicContent(
     const dyn_vars_eval = window.Function(
         "v",
         "rand",
+        ...Object.keys(dyn_imports),
         `"use strict";\n${dyn_vars};\nreturn v;`
-    )({ divid: divid, prepareCheckAnswers: prepareCheckAnswers }, RAND_FUNC);
+    )({ divid, prepareCheckAnswers, dyn_imports }, rand, ...Object.values(dyn_imports));
 
     let html_out;
     if (typeof dyn_vars_eval.beforeContentRender === "function") {
         try {
             dyn_vars_eval.beforeContentRender(dyn_vars_eval);
         } catch (err) {
-            console.log(
+            console.assert(false,
                 `Error in problem ${divid} invoking beforeContentRender`
             );
             throw err;
@@ -103,7 +105,7 @@ export function renderDynamicContent(
     try {
         html_out = render_html(html_in, dyn_vars_eval);
     } catch (err) {
-        console.log(`Error rendering problem ${divid} text using EJS`);
+        console.assert(false, `Error rendering problem ${divid} text using EJS`);
         throw err;
     }
 
@@ -142,7 +144,7 @@ export function checkAnswersCore(
         try {
             dyn_vars_eval.beforeCheckAnswers(dve_blanks, given_arr_converted);
         } catch (err) {
-            console.log("Error calling beforeCheckAnswers");
+            console.assert(false, "Error calling beforeCheckAnswers");
             throw err;
         }
     }
@@ -250,7 +252,7 @@ export function checkAnswersCore(
         try {
             dyn_vars_eval.afterCheckAnswers(dve_blanks, given_arr_converted);
         } catch (err) {
-            console.log("Error calling afterCheckAnswers");
+            console.assert(false, "Error calling afterCheckAnswers");
             throw err;
         }
     }
@@ -318,7 +320,7 @@ export function renderDynamicFeedback(
     try {
         displayFeed_i = render_html(displayFeed_i, sol_vars_plus);
     } catch (err) {
-        console.log(`Error evaluating feedback index ${index}.`);
+        console.assert(false, `Error evaluating feedback index ${index}.`);
         throw err;
     }
 

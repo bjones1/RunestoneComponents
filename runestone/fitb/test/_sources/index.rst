@@ -239,6 +239,8 @@ This problem demonstrates some of the possibilities and challenges in dynamic pr
             const P2=board.create('point', [v.c, v.d], {name: 'P_2', fixed: true});
             board.create('line', [P1, P2]);
         };
+    :dyn_imports: BTM
+    :static_seed: 0
 
     Can we include a randomly generated graph?
 
@@ -251,22 +253,4 @@ This problem demonstrates some of the possibilities and challenges in dynamic pr
     :math:`y =` :blank:`formula`
 
     -   :_menv.compareExpressions(pointSlope, formula): Correct!
-        :x: Try again!
-
-
-Footnotes
----------
-.. [#converters]
-
-    While JavaScript provides ``Date`` and ``Date.parse`` converters, there's a lot of subtlety in time zones making this difficult to use for most cases. Likewise, ``Boolean`` makes little sense although it's available. It's possible to use ``Math.round``, but again this makes little sense for most cases (should a student answer of 3.4 correctly compare to a solution of 3?).
-
-    It might be useful to write a  ``CleanString`` converter to remove leading and trailing spaces in a blank and provide equality operators that ignore multiple spaces, capitalization, etc. However, what sort of dynamic problems would be able to correctly grade string answers?
-
-
-qnum reset
-----------
-Reset ``qnum`` values to prevent affecting other problems.
-
-.. qnum::
-    :prefix:
-    :suffix:
+        :x: Try again! The answer is [%= pointSlope %].

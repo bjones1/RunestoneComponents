@@ -105,52 +105,79 @@ export default class FITB extends RunestoneBase {
     this.setupBlanks();
     this.caption = "Fill in the Blank";
     this.addCaption("runestone");
-    this.checkServer("fillb", false).then(() => {
-      // One option for a dynamic problem is to produce a static problem by providing a fixed seed value. This is typically used when the goal is to render the problem as an image for inclusion in static content (a PDF, etc.). To support this, consider the following cases:
-      //
-      /// Case  Has static seed?  Is a client-side, dynamic problem?  Has local seed?  Result
-      /// 0     No                No                                  X                No action needed.
-      /// 1     No                Yes                                 No               this.randomize().
-      /// 2     No                Yes                                 Yes              No action needed -- problem already restored from local storage.
-      /// 3     Yes               No                                  X                Warning: seed ignored.
-      /// 4     Yes               Yes                                 No               Assign seed; this.renderDynamicContent().
-      /// 5     Yes               Yes                                 Yes              If seeds differ, issue warning. No additional action needed -- problem already restored from local storage.
 
-      const has_static_seed = dict_.static_seed !== undefined;
-      const is_client_dynamic = typeof this.dyn_vars === "string";
-      const has_local_seed = this.seed !== undefined;
+    // Define a promise which imports any libraries needed by dynamic problems.
+    this.dyn_imports = {};
+    let imports_promise = Promise.resolve();
+    if (dict_.dyn_imports !== undefined) {
+      // Collect all import promises.
+      let import_promises = [];
+      for (const import_ of dict_.dyn_imports) {
+        switch (import_) {
+            case "BTM": import_promises.push(import("./libs/BTM/src/BTM_root.js")); break;
+            default: throw(`Unknown dynamic import ${import_}`);
+        }
+      }
 
-      // Case 1
-      if (!has_static_seed && is_client_dynamic && !has_local_seed) {
-        this.randomize();
-      } else
-      // Case 3
-      if (has_static_seed && !is_client_dynamic) {
-        console.log("Warning: the provided static seed was ignored, because it only affects client-side, dynamic problems.");
-      } else
-      // Case 4
-      if (has_static_seed && is_client_dynamic && !has_local_seed) {
-        this.seed = dict_.static_seed;
-        this.renderDynamicContent();
-      } else
-      // Case 5
-      if (has_static_seed && is_client_dynamic && has_local_seed && this.seed !== dict_.static_seed) {
-        console.log("Warning: the provided static seed was overridden by the seed found in local storage.");
-      }
-      // Cases 0 and 2
-      else {
-        // No action needed.
-      }
-      this.indicate_component_ready();
+      // Combine the resulting module namespace objects when these promises resolve.
+      imports_promise = Promise.all(import_promises).then((module_namespace_arr) =>
+        this.dyn_imports = Object.assign({}, ...module_namespace_arr)
+      );
+    }
+
+    // Resolve these promises.
+    imports_promise.then(() => {
+      this.checkServer("fillb", false).then(() => {
+        // One option for a dynamic problem is to produce a static problem by providing a fixed seed value. This is typically used when the goal is to render the problem as an image for inclusion in static content (a PDF, etc.). To support this, consider the following cases:
+        //
+        /// Case  Has static seed?  Is a client-side, dynamic problem?  Has local seed?  Result
+        /// 0     No                No                                  X                No action needed.
+        /// 1     No                Yes                                 No               this.randomize().
+        /// 2     No                Yes                                 Yes              No action needed -- problem already restored from local storage.
+        /// 3     Yes               No                                  X                Warning: seed ignored.
+        /// 4     Yes               Yes                                 No               Assign seed; this.renderDynamicContent().
+        /// 5     Yes               Yes                                 Yes              If seeds differ, issue warning. No additional action needed -- problem already restored from local storage.
+
+        const has_static_seed = dict_.static_seed !== undefined;
+        const is_client_dynamic = typeof this.dyn_vars === "string";
+        const has_local_seed = this.seed !== undefined;
+
+        // Case 1
+        if (!has_static_seed && is_client_dynamic && !has_local_seed) {
+          this.randomize();
+        } else
+        // Case 3
+        if (has_static_seed && !is_client_dynamic) {
+          console.assert(false, "Warning: the provided static seed was ignored, because it only affects client-side, dynamic problems.");
+        } else
+        // Case 4
+        if (has_static_seed && is_client_dynamic && !has_local_seed) {
+          this.seed = dict_.static_seed;
+          this.renderDynamicContent();
+        } else
+        // Case 5
+        if (has_static_seed && is_client_dynamic && has_local_seed && this.seed !== dict_.static_seed) {
+          console.assert(false, "Warning: the provided static seed was overridden by the seed found in local storage.");
+        }
+        // Cases 0 and 2
+        else {
+          // No action needed.
+        }
+
+        if (typeof Prism !== "undefined") {
+            Prism.highlightAllUnder(this.containerDiv);
+          }
+
+        this.indicate_component_ready();
+      });
     });
-    if (typeof Prism !== "undefined") {
-	    Prism.highlightAllUnder(this.containerDiv);
-	}
   }
+
   // Find the script tag containing JSON in a given root DOM node.
   scriptSelector(root_node) {
     return $(root_node).find(`script[type="application/json"]`);
   }
+
   /*===========================================
     ====   Functions generating final HTML   ====
     ===========================================*/
@@ -261,6 +288,7 @@ export default class FITB extends RunestoneBase {
         renderDynamicContent(
           this.seed,
           this.dyn_vars,
+          this.dyn_imports,
           this.descriptionDiv.origInnerHTML,
           this.divid,
           this.prepareCheckAnswers.bind(this),
@@ -271,7 +299,7 @@ export default class FITB extends RunestoneBase {
         try {
           this.dyn_vars_eval.afterContentRender(this.dyn_vars_eval);
         } catch (err) {
-          console.log(`Error in problem ${this.divid} invoking afterContentRender`);
+          console.assert(false, `Error in problem ${this.divid} invoking afterContentRender`);
           throw err;
         }
       }
@@ -370,7 +398,7 @@ export default class FITB extends RunestoneBase {
           var arr = storedData.answer;
         } catch (err) {
           // error while parsing; likely due to bad value stored in storage
-          console.log(err.message);
+          console.assert(false, err.message);
           localStorage.removeItem(this.localStorageKey());
           return;
         }
@@ -644,7 +672,7 @@ $(document).on("runestone:login-complete", function () {
       try {
         FITBList[this.id] = new FITB(opts);
       } catch (err) {
-        console.log(
+        console.assert(false,
           `Error rendering Fill in the Blank Problem ${this.id}
                      Details: ${err}`
         );

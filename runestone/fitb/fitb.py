@@ -101,13 +101,20 @@ def depart_fitb_html(self, node):
     inner_html = self.body
     self.body = self.context.pop()
 
-    # Generate the HTML.
-    db_json = json.dumps({
+    # Generate the HTML. Start with required JSON data.
+    db_dict = {
         "problemHtml": "".join(inner_html),
         "dyn_vars": node.dynamic,
         "blankNames": blank_names,
         "feedbackArray": node["feedbackArray"]
-    })
+    }
+    # Add in optional data.
+    if dyn_imports := node["runestone_options"].get("dyn_imports", "").split():
+        db_dict["dyn_imports"] = dyn_imports
+    if (static_seed := node["runestone_options"].get("static_seed")) is not None:
+        db_dict["static_seed"] = static_seed
+    db_json = json.dumps(db_dict)
+
     # Some nodes (for example, those in a timed node) have their ``document == None``. Find a valid ``document``.
     node_with_document = node
     while not node_with_document.document:
@@ -259,6 +266,10 @@ class FillInTheBlank(RunestoneIdDirective):
         {
             # For dynamic problems, this contains JavaScript code which defines the variables used in template substitution in the problem. If this option isn't present, the problem will be a static problem.
             "dyn_vars": directives.unchanged,
+            # For dynamic problems, this contain a space-separated list of libraries needed by this problem.
+            "dyn_imports": directives.unchanged,
+            # For dynamic problems, this provides an optional static seed.
+            "static_seed": directives.unchanged,
             # case insensitive matching
             "casei": directives.flag,
         }
@@ -357,7 +368,7 @@ class FillInTheBlank(RunestoneIdDirective):
                     get_node_line(feedback_bullet_list)
                 )
             )
-        # Thelength of feedbback_list_item gives us the number of blanks.
+        # The length of feedbback_list_item gives us the number of blanks.
         # the number of feedback is len(feedback_bullet_list.children[x].children[0].children)
         for feedback_list_item in feedback_bullet_list.children:
             assert isinstance(feedback_list_item, nodes.list_item)
