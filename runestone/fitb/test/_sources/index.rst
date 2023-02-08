@@ -207,7 +207,6 @@ This problem demonstrates some of the possibilities and challenges in dynamic pr
 
 .. raw:: html
 
-    <script src="https://educ.jmu.edu/~waltondb/dynamic_fitb//btmExpressions.js"></script>
     <script src="https://jsxgraph.org/distrib/jsxgraphcore.js"></script>
 
 
@@ -226,9 +225,7 @@ This problem demonstrates some of the possibilities and challenges in dynamic pr
         v.m = v.dy/v.dx;
         v.bint = v.b-v.m*v.a;
         // Equation of the line
-        v.pointSlope = v._menv.addExpression('pointSlope', {
-            formula: '{{dy}}/{{dx}}*(x-{{a}})+{{b}}'
-        }).reduce();
+        v.pointSlope = v._menv.addExpression('pointSlope', '{{dy}}/{{dx}}*(x-{{a}})+{{b}}').reduce();
         // Declare answer parsers
         v.types = v._menv.getParser();
         // Setup post-processing function
@@ -242,7 +239,7 @@ This problem demonstrates some of the possibilities and challenges in dynamic pr
     :dyn_imports: BTM
     :static_seed: 0
 
-    Can we include a randomly generated graph?
+    Can we include a randomly generated graph? This also tests dynamic imports and the use of a static seed.
 
     .. raw:: html
 
