@@ -89,7 +89,12 @@ export function renderDynamicContent(
         "rand",
         ...Object.keys(dyn_imports),
         `"use strict";\n${dyn_vars};\nreturn v;`
-    )({ divid, prepareCheckAnswers, dyn_imports }, rand, ...Object.values(dyn_imports));
+    )(
+        // We want v.divid = divid and v.prepareCheckAnswers = prepareCheckAnswers. In contrast, the key/values pairs of dyn_imports should be directly assigned to v, hence the Object.assign.
+        Object.assign({ divid, prepareCheckAnswers}, dyn_imports),
+        rand,
+        // In addition to providing this in v, make it available in the function as well, since most problem authors will write ``foo = new BTM()`` (for example, assuming BTM is in dyn_imports) instead of ``foo = new v.BTM()`` (which is unusual syntax).
+        ...Object.values(dyn_imports));
 
     let html_out;
     if (typeof dyn_vars_eval.beforeContentRender === "function") {
@@ -105,7 +110,7 @@ export function renderDynamicContent(
     try {
         html_out = render_html(html_in, dyn_vars_eval);
     } catch (err) {
-        console.assert(false, `Error rendering problem ${divid} text using EJS`);
+        console.assert(false, `Error rendering problem ${divid} text.`);
         throw err;
     }
 
