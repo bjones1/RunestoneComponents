@@ -251,3 +251,53 @@ This problem demonstrates some of the possibilities and challenges in dynamic pr
 
     -   :_menv.compareExpressions(pointSlope, formula): Correct!
         :x: Try again! The answer is [%= pointSlope %].
+
+.. fillintheblank:: test_fitb_dynamic_5
+    :dyn_vars:
+        v._menv = new BTM({'rand': rand});
+        v.toTeX = toTeX;
+        v.m = v._menv.addMathObject("m", "number", v._menv.generateRandom("discrete", { min:-4, max:5, by:1, nonzero:true})
+        );
+        v.b = v._menv.addMathObject("b", "number", v._menv.generateRandom("discrete", { min:-10, max:10, by:1, nonzero:false})
+        );
+        v.negB = v._menv.addMathObject("negB", "number", v._menv.parseExpression("-{{b}}", "number"));
+        v.theFunction = v._menv.addMathObject("theFunction", "formula", v._menv.parseExpression("{{m}}*x+{{b}}").reduce());
+        v.theAnswer = v._menv.addMathObject("theAnswer", "formula", v._menv.parseExpression("-{{b}}\/{{m}}").reduce());
+        v.types = [v._menv.getParser()];
+    :dyn_imports: BTM
+
+        Solve the equation
+
+        .. raw:: html
+
+            \begin{equation*}
+            [%= toTeX(theFunction) %]=0
+            \end{equation*}
+
+    to get the value of :math:`(x\text{.})`
+
+    :math:`(x = )` :blank:`solution`
+
+    Solution: We want to isolate the :math:`(x)` in the equation :math:`([%= toTeX(theFunction) %]=0\text{.})` Because addition of :math:`([%= toTeX(b) %])` is the last operation, we apply the inverse by adding :math:`([%= toTeX(negB) %])` to both sides. The new, but equivalent equation is now :math:`([%= toTeX(m) %]x = [%= toTeX(negB) %]\text{.})` Dividing both sides of the equation by :math:`([%= toTeX(m) %]\text{,})` we obtain the solution :math:`(x=[%= toTeX(theAnswer) %]\text{.})`
+
+    -   :function() { var testResults = new Array(); testResults[0] = _menv.compareExpressions(theAnswer, solution); return (testResults[0]); }(): Correct!
+        :function() { var testResults = new Array(); testResults[0] = _menv.compareExpressions(_menv.parseExpression("{{b}}/{{m}}").reduce(), solution); return (testResults[0]); }(): Error with signs while isolating x
+        :x: Incorrect; try again.
+
+
+Footnotes
+---------
+.. [#converters]
+
+    While JavaScript provides ``Date`` and ``Date.parse`` converters, there's a lot of subtlety in time zones making this difficult to use for most cases. Likewise, ``Boolean`` makes little sense although it's available. It's possible to use ``Math.round``, but again this makes little sense for most cases (should a student answer of 3.4 correctly compare to a solution of 3?).
+
+    It might be useful to write a  ``CleanString`` converter to remove leading and trailing spaces in a blank and provide equality operators that ignore multiple spaces, capitalization, etc. However, what sort of dynamic problems would be able to correctly grade string answers?
+
+
+qnum reset
+----------
+Reset ``qnum`` values to prevent affecting other problems.
+
+.. qnum::
+    :prefix:
+    :suffix:
