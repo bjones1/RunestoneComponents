@@ -1,5 +1,5 @@
 /*!
- * BTM JavaScript Library v@VERSION
+ * BTM JavaScript Library v@d6b2619bc678f12efde6b65037a9e1a2284175ae
  * https://github.com/dbrianwalton/BTM
  *
  * Copyright D. Brian Walton
@@ -216,7 +216,7 @@ export class BTM {
                 break;
             }
         } else if (options.mode == 'calculate') {
-            newParam = this.parse(options.formula, "number").evaluate(this.data.params);
+            newParam = this.parse(options.formula, "formula").evaluate(this.data.params);
         } else if (options.mode == 'rational') {
             newParam = this.parse(new rational_number(options.numer,options.denom).toString(), "number");
         } else if (options.mode == 'static') {
