@@ -117,7 +117,7 @@ export default class FITB extends RunestoneBase {
             // For imports known at webpack build, bring these in.
             case "BTM": import_promises.push(import("btm-expressions/src/BTM_root.js")); break;
             // Allow for local imports, usually from problems defined outside the Runestone Components.
-            default: import_promises.push(import(import_)); break;
+            default: import_promises.push(import(/* webpackIgnore: true */ import_)); break;
         }
       }
 
