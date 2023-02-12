@@ -114,15 +114,17 @@ export default class FITB extends RunestoneBase {
       let import_promises = [];
       for (const import_ of dict_.dyn_imports) {
         switch (import_) {
-            case "BTM": import_promises.push(import("./libs/BTM/src/BTM_root.js")); break;
-            default: throw(`Unknown dynamic import ${import_}`);
+            // For imports known at webpack build, bring these in.
+            case "BTM": import_promises.push(import("btm-expressions/src/BTM_root.js")); break;
+            // Allow for local imports, usually from problems defined outside the Runestone Components.
+            default: import_promises.push(import(import_)); break;
         }
       }
 
       // Combine the resulting module namespace objects when these promises resolve.
       imports_promise = Promise.all(import_promises).then((module_namespace_arr) =>
         this.dyn_imports = Object.assign({}, ...module_namespace_arr)
-      );
+      ).catch(err => { throw `Failed dynamic import: ${err}.` });
     }
 
     // Resolve these promises.
