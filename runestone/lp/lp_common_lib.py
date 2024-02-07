@@ -26,6 +26,7 @@ def commentForExt(file_name):
         ".js": "// ",
         ".py": "# ",
         ".v": "// ",
+        ".sv": "// ",
         # Rust.
         ".rs": "// ",
         # PIC24 assembly
