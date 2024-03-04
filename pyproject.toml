@@ -85,7 +85,8 @@ exclude = [
 # TODO: loosen some of these? Explain why these versions were picked?
 cogapp = ">=2.5"
 click = "~8"
-CodeChat = ">=1.8.6"
+# CodeChat v1.9.3 requires newer Docutils than Runestone (which is stuck on Sphinx v5) allows.
+CodeChat = ">=1.8.6,<=1.9.2"
 jinja2 = "<3.1.0"
 Paver = ">=1.2.4"
 python = "^3.7.0"
