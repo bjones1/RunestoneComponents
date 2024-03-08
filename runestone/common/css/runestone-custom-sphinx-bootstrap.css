@@ -241,7 +241,7 @@ div.container {
     }
 
 /* Sets width of content "column" */
-#main-content section > *:not(section) {
+#main-content > * {
     max-width: var(--contentWidthRegular);
     margin-left: auto;
     margin-right: auto;
@@ -260,7 +260,7 @@ div.container {
 #main-content section > .timedAssessment,
 #main-content section > .jupyterlite_sphinx_iframe_container
 {
-    max-width: var(--contentWidthRegular);
+    max-width: var(--contentWidthWide);
     margin-left: auto;
     margin-right: auto;
 }
