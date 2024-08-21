@@ -1,6 +1,6 @@
 # Common routines for converting to PreTeXt
 
-from asyncore import write
+##from asyncore import write
 
 
 def write_substitute(self, node, html=None):
