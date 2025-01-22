@@ -98,6 +98,11 @@ module.exports = (env, argv) => {
                         from: "node_modules/sql.js/dist/sql-wasm.wasm",
                         to: ".",
                     },
+                    {
+                        // Same for vcdrom.
+                        from: "node_modules/vcdrom/app/vcd.wasm",
+                        to: ".",
+                    },
                 ],
             }),
             new MiniCssExtractPlugin({

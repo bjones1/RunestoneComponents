@@ -164,8 +164,21 @@ def depart_lp_html(self, node):
     <br />
     <textarea readonly class="lp-result"></textarea>
     <br />
-    <div class="lp-feedback"><div></div></div><div id="vcdrom_contents"></div>
-</div>""".format(
+    <div class="lp-feedback"><div></div></div>
+    <style>
+        #wd-container {{
+            color: white;
+            background-color: black;
+        }}
+        .toggleVcdromAbsolute {{
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            z-index: 1;
+        }}
+    </style>
+    <button id="toggleVcdromWaveformsButton" style="display: none">Toggle waveforms</button>              <div id="vcdrom_contents" style="display: none"></div>
+    </div>""".format(
         "".join(self.body), node["runestone_options"]["language"], id_
     )
     self.body = self.context.pop() + [html]

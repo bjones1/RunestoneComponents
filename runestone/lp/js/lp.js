@@ -32,7 +32,7 @@ import "codemirror/mode/sql/sql.js";
 import "codemirror/mode/clike/clike.js";
 import "codemirror/mode/octave/octave.js";
 import "codemirror/lib/codemirror.css";
-import "vcdrom";
+import "vcdrom/app/vcdrom.js";
 
 // Constructor
 // ===========
@@ -223,11 +223,30 @@ class LP extends RunestoneBase {
                     },
                     });
                 }
+                // Show a button to show/hide the waveforms.
+                const navbar = document.getElementById("navbar");
+                const button = document.getElementById("toggleVcdromWaveformsButton");
+                let toggleVcdromWaveformsScrollY = 0;
+                button.style.display = "block";
+                button.addEventListener("click", () => {
+                    if (!navbar.style.zIndex) {
+                        navbar.style.zIndex = 0;
+                        toggleVcdromWaveformsScrollY = window.scrollY;
+                        window.scrollTo({top: 0});
+                        document.body.style.overflowY = "hidden";
+                    } else {
+                        navbar.style.zIndex = "";
+                        document.body.style.overflowY = "auto";
+                        window.scrollTo({top: toggleVcdromWaveformsScrollY});
+                    }
+                    $("#vcdrom_contents").toggle();
+                    $("#toggleVcdromWaveformsButton").toggleClass("toggleVcdromAbsolute");
+                });
                 // Pass it to VCDrom for display.
-                window.VCDrom('vcdrom_contents', async (handler) => await handler([{
-                    ext: 'vcd',
+                window.VCDrom("vcdrom_contents", async (handler) => await handler([{
+                    ext: "vcd",
                     reader: wrapStringInReadableStream(vcd_contents).getReader(),
-                }]));
+                }])).then(() => document.body.style.overflowY = "auto");
             }
         }
     }
