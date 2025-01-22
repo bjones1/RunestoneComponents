@@ -32,6 +32,7 @@ import "codemirror/mode/sql/sql.js";
 import "codemirror/mode/clike/clike.js";
 import "codemirror/mode/octave/octave.js";
 import "codemirror/lib/codemirror.css";
+import "vcdrom";
 
 // Constructor
 // ===========
@@ -206,6 +207,28 @@ class LP extends RunestoneBase {
             }
             // Scroll to the bottom of the results.
             $(this.resultElement).scrollTop(this.resultElement[0].scrollHeight);
+            const vcd_contents = data.answer.vcd_contents;
+            if (vcd_contents.length > 0) {
+                // Show the waveform.
+                //
+                // From Google AI search: wrap a string in a `ReadableStream`.
+                function wrapStringInReadableStream(str) {
+                    const encoder = new TextEncoder();
+                    const encodedData = encoder.encode(str);
+
+                    return new ReadableStream({
+                    start(controller) {
+                        controller.enqueue(encodedData);
+                        controller.close();
+                    },
+                    });
+                }
+                // Pass it to VCDrom for display.
+                window.VCDrom('vcdrom_contents', async (handler) => await handler([{
+                    ext: 'vcd',
+                    reader: wrapStringInReadableStream(vcd_contents).getReader(),
+                }]));
+            }
         }
     }
 

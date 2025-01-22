@@ -164,7 +164,7 @@ def depart_lp_html(self, node):
     <br />
     <textarea readonly class="lp-result"></textarea>
     <br />
-    <div class="lp-feedback"><div></div></div>
+    <div class="lp-feedback"><div></div></div><div id="vcdrom_contents"></div>
 </div>""".format(
         "".join(self.body), node["runestone_options"]["language"], id_
     )
